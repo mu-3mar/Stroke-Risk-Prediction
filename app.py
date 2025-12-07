@@ -1,6 +1,8 @@
 import streamlit as st
-import requests
-import json
+import pandas as pd
+import joblib
+import os
+import numpy as np
 
 # Set page configuration
 st.set_page_config(
@@ -9,8 +11,26 @@ st.set_page_config(
     layout="centered"
 )
 
-# API Endpoint
-API_URL = "http://localhost:8000/predict"
+# Paths to artifacts
+MODEL_PATH = "artifacts/best_stroke_model.pkl"
+SCALER_PATH = "artifacts/scaler.pkl"
+
+# Load artifacts with caching
+@st.cache_resource
+def load_artifacts():
+    if not os.path.exists(MODEL_PATH) or not os.path.exists(SCALER_PATH):
+        st.error(f"Artifacts not found at {MODEL_PATH} or {SCALER_PATH}. Please run the training notebook first.")
+        return None, None
+    
+    try:
+        model = joblib.load(MODEL_PATH)
+        scaler = joblib.load(SCALER_PATH)
+        return model, scaler
+    except Exception as e:
+        st.error(f"Error loading artifacts: {e}")
+        return None, None
+
+model, scaler = load_artifacts()
 
 # Custom Styling (CSS)
 st.markdown("""
@@ -95,47 +115,50 @@ with st.form("risk_form"):
     submitted = st.form_submit_button("Analyze Risk", use_container_width=True)
 
     if submitted:
-        # Prepare payload
-        # Map boolean (True/False) to int (1/0)
-        payload = {
-            "chest_pain": int(chest_pain),
-            "shortness_of_breath": int(shortness_breath),
-            "irregular_heartbeat": int(irregular_heart),
-            "fatigue_weakness": int(fatigue),
-            "dizziness": int(dizziness),
-            "swelling_edema": int(swelling),
-            "pain_neck_jaw_shoulder_back": int(pain_radiating),
-            "excessive_sweating": int(sweating),
-            "persistent_cough": int(cough),
-            "nausea_vomiting": int(nausea),
-            "high_blood_pressure": int(bp),
-            "chest_discomfort_activity": int(chest_discomfort),
-            "cold_hands_feet": int(cold_limbs),
-            "snoring_sleep_apnea": int(snoring),
-            "anxiety_feeling_of_doom": int(anxiety),
-            "age": int(age)
-        }
-        
-        try:
-            with st.spinner("Analyzing data..."):
-                response = requests.post(API_URL, json=payload)
+        if model is None or scaler is None:
+             st.error("Model or Scaler is missing. Cannot perform prediction.")
+        else:
+            # Prepare input data matching the order expected by the model
+            # Note: The keys must match exactly what the model was trained on
+            input_data = {
+                'Chest Pain': [int(chest_pain)],
+                'Shortness of Breath': [int(shortness_breath)],
+                'Irregular Heartbeat': [int(irregular_heart)],
+                'Fatigue & Weakness': [int(fatigue)],
+                'Dizziness': [int(dizziness)],
+                'Swelling (Edema)': [int(swelling)],
+                'Pain in Neck/Jaw/Shoulder/Back': [int(pain_radiating)],
+                'Excessive Sweating': [int(sweating)],
+                'Persistent Cough': [int(cough)],
+                'Nausea/Vomiting': [int(nausea)],
+                'High Blood Pressure': [int(bp)],
+                'Chest Discomfort (Activity)': [int(chest_discomfort)],
+                'Cold Hands/Feet': [int(cold_limbs)],
+                'Snoring/Sleep Apnea': [int(snoring)],
+                'Anxiety/Feeling of Doom': [int(anxiety)],
+                'Age': [int(age)]
+            }
             
-            if response.status_code == 200:
-                result = response.json()
-                prediction = result["prediction"]
-                probability = result["risk_probability"] * 100
+            input_df = pd.DataFrame(input_data)
+            
+            # Preprocessing: Scale Age using the loaded scaler
+            # The scaler expects a 2D array for the column it was trained on
+            try:
+                input_df['Age'] = scaler.transform(input_df[['Age']])
                 
-                if prediction == "At Risk":
+                # Predict
+                prediction_prob = model.predict_proba(input_df)[0][1] # Probability of Class 1 (At Risk)
+                prediction_class = model.predict(input_df)[0]
+                
+                result = "At Risk" if prediction_class == 1 else "Not At Risk"
+                probability = prediction_prob * 100
+                
+                if result == "At Risk":
                     st.markdown(f"<div class='result-box-risk'>Result: High Risk⚠️<br><span style='font-size:18px'>Probability: {probability:.1f}%</span></div>", unsafe_allow_html=True)
                     st.warning("Your inputs suggest patterns often found in high-risk patients. Please consult a medical professional immediately.")
                 else:
                     st.markdown(f"<div class='result-box-safe'>Result: Low Risk✅<br><span style='font-size:18px'>Probability: {probability:.1f}%</span></div>", unsafe_allow_html=True)
                     st.success("Your inputs align with lower risk profiles. Maintain a healthy lifestyle!")
                     
-            else:
-                st.error(f"Error communicating with API. Status Code: {response.status_code}")
-                st.write(response.text)
-                
-        except requests.exceptions.ConnectionError:
-            st.error("Could not connect to the API. Is `api.py` running?")
-            st.info("Run in terminal: `python3 api.py`")
+            except Exception as e:
+                st.error(f"An error occurred during prediction: {e}")
