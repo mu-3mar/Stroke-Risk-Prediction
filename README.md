@@ -38,6 +38,7 @@ independent static application that connects to the API when it is available.
 Stroke-Risk-Prediction/
 ├── README.md
 ├── requirements.txt
+├── requirements-docker.txt
 ├── notebooks/
 │   └── 01_stroke_risk_prediction.ipynb # EDA, preprocessing, training
 ├── src/
@@ -62,10 +63,54 @@ Download instructions are in [`data/README.md`](data/README.md).
 
 ## Usage
 
-Install the project's Python packages:
+Install all packages for training, analysis, and the API:
 
 ```bash
 pip install -r requirements.txt
+```
+
+For the API Docker image, install only the runtime dependencies:
+
+```bash
+pip install -r requirements-docker.txt
+```
+
+The Docker requirements exclude the notebook and visualization packages
+(`jupyter`, `matplotlib`, and `seaborn`). They still include
+`scikit-learn`, because it is required to load and run the trained model
+artifacts.
+
+## Dockerization
+
+The FastAPI backend has been containerized and the image is available on
+[Docker Hub](https://hub.docker.com/r/mu3mar/stroke-risk-api):
+
+```text
+mu3mar/stroke-risk-api:latest
+```
+
+Pull and run the image:
+
+```bash
+docker pull mu3mar/stroke-risk-api:latest
+docker run -d \
+  --name stroke-risk-api \
+  -p 8000:8000 \
+  mu3mar/stroke-risk-api:latest
+```
+
+After starting the container, check the API health:
+
+```bash
+curl http://localhost:8000/health
+```
+
+The API documentation is available at
+<http://localhost:8000/docs>. To stop and remove the container:
+
+```bash
+docker stop stroke-risk-api
+docker rm stroke-risk-api
 ```
 
 To reproduce the analysis and regenerate the model files:
