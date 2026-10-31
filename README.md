@@ -24,7 +24,7 @@ notebooks/01_stroke_risk_prediction.ipynb
                      src/main.py ──► POST /predict
                               ▲
                               │
-                    frontend/ (separate server)
+                    public/ (separate server locally, CDN on Vercel)
 ```
 
 The notebook contains the complete analysis, preprocessing, model comparison,
@@ -44,7 +44,7 @@ Stroke-Risk-Prediction/
 ├── src/
 │   ├── __init__.py
 │   └── main.py                         # FastAPI app and prediction endpoint
-├── frontend/
+├── public/
 │   ├── index.html                      # Browser prediction form
 │   ├── app.js                          # 16-feature request and result handling
 │   ├── styles.css                      # Frontend styling
@@ -128,15 +128,16 @@ uvicorn src.main:app --reload
 Run the independent frontend in a second terminal:
 
 ```bash
-python3 -m http.server 5500 --directory frontend
+python3 -m http.server 5500 --directory public
 ```
 
-Open <http://127.0.0.1:5500/> in a browser. The frontend connects to the API
-at `http://127.0.0.1:8000`; if the API is stopped, the frontend remains open
-and shows the API as offline. The API also exposes `/health` and `POST
-/predict`.
+Open <http://127.0.0.1:5500/> in a browser. During local development, the
+frontend connects to the API at `http://127.0.0.1:8000`; if the API is
+stopped, the frontend remains open and shows the API as offline. On Vercel,
+the same frontend uses same-origin requests to the deployed API. The API also
+exposes `/health` and `POST /predict`.
 
-The frontend in [`frontend/`](frontend) uses the same 16 inputs as the trained
+The frontend in [`public/`](public) uses the same 16 inputs as the trained
 model and sends this request to `POST /predict`:
 
 ```json
@@ -157,6 +158,27 @@ The response should contain the model output:
 
 The prediction response contains the binary prediction and class-1
 probability. The project no longer uses Streamlit.
+
+## Vercel deployment
+
+This repository uses Vercel's native Python runtime. Vercel discovers the
+FastAPI instance exported as `app` from [`src/main.py`](src/main.py), installs
+the runtime dependencies from [`requirements.txt`](requirements.txt), and
+serves the files in [`public/`](public/) from the CDN. [`vercel.json`](vercel.json)
+explicitly includes both serialized model artifacts in the Python function
+bundle.
+
+Connect the repository to Vercel with the repository root as the project root.
+No build command or output directory is required. After deployment, open the
+deployment URL and verify `/health`, `/docs`, and the browser form. The
+prediction API remains `POST /predict`; frontend requests are relative to the
+deployment URL.
+
+Vercel functions are stateless and may cold-start while importing the model.
+The serialized artifacts are approximately 660 KB in total, but the Python
+runtime and scientific dependencies still contribute to bundle size and cold
+start time. The deployment does not require the training dataset: training
+and notebook processing are not imported by the API.
 
 ## Features
 

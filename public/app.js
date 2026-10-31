@@ -1,5 +1,8 @@
-// Keep the frontend independent: serve this directory separately on port 5500.
-const API_BASE = "http://127.0.0.1:8000";
+const isLocalFrontend =
+  window.location.protocol === "file:" ||
+  (["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+    window.location.port === "5500");
+const API_BASE = isLocalFrontend ? "http://127.0.0.1:8000" : "";
 const form = document.querySelector("#prediction-form");
 const errorBox = document.querySelector("#error-message");
 const submitButton = document.querySelector("#submit-button");
