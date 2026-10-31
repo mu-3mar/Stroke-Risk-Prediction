@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff8f5">
+  <title>Stroke Risk Predictor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <header class="brand-bar">
+      <a class="brand" href="#top" aria-label="Stroke Risk Predictor home">
+        <span class="brand-mark">
+          <iframe
+            class="brand-logo-frame"
+            src="./logo-animated.html?color=%23F04B24"
+            title="Animated project logo"
+            aria-label="Animated project logo"
+            tabindex="-1"
+          ></iframe>
+        </span>
+        <span><strong>Stroke Risk Predictor</strong><small>HEALTH SCREENING DEMO</small></span>
+      </a>
+      <div class="api-pill"><span class="live-dot"></span><span id="api-status">Checking API…</span></div>
+    </header>
+
+    <section class="intro" id="top">
+      <p class="eyebrow">STROKE PREDICTION · ML DEMO</p>
+      <h1>Check your <em>stroke risk.</em></h1>
+      <p class="intro-copy">Enter the 16 health and symptom indicators used by the trained model. The result is a probability estimate, not a diagnosis.</p>
+    </section>
+
+    <div class="notice"><span>i</span><p><strong>Educational use only.</strong> This prediction is not medical advice or a diagnosis. Consult a qualified healthcare professional about health concerns.</p></div>
+
+    <form id="prediction-form" novalidate>
+      <section class="form-card">
+        <div class="card-heading"><div><span class="step">01</span><h2>Personal information</h2></div><p>Required model inputs</p></div>
+        <div class="field-grid">
+          <label class="field"><span>Age</span><input name="Age" type="range" min="1" max="120" step="1" value="30" required aria-label="Age in years"><output class="range-value" for="Age">30 years</output><small>Drag the slider to choose an age from 1 to 120.</small></label>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="card-heading"><div><span class="step">02</span><h2>Symptoms</h2></div><p>Toggle what applies</p></div>
+        <div class="toggle-grid">
+          <label class="toggle-field"><span><strong>Chest pain</strong><small>Pain or pressure in the chest</small></span><input class="switch-input" type="checkbox" name="Chest Pain" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Shortness of breath</strong><small>Breathing difficulty or breathlessness</small></span><input class="switch-input" type="checkbox" name="Shortness of Breath" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Irregular heartbeat</strong><small>Fluttering or irregular heartbeat</small></span><input class="switch-input" type="checkbox" name="Irregular Heartbeat" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Fatigue and weakness</strong><small>Unusual tiredness or weakness</small></span><input class="switch-input" type="checkbox" name="Fatigue & Weakness" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Dizziness</strong><small>Dizziness or lightheadedness</small></span><input class="switch-input" type="checkbox" name="Dizziness" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Swelling</strong><small>Swelling in the legs or ankles</small></span><input class="switch-input" type="checkbox" name="Swelling (Edema)" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Neck, jaw, shoulder, or back pain</strong><small>Unexplained radiating pain</small></span><input class="switch-input" type="checkbox" name="Pain in Neck/Jaw/Shoulder/Back" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Excessive sweating</strong><small>Sweating without physical exertion</small></span><input class="switch-input" type="checkbox" name="Excessive Sweating" value="1" role="switch"></label>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="card-heading"><div><span class="step">03</span><h2>Health history</h2></div><p>Toggle what applies</p></div>
+        <div class="toggle-grid">
+          <label class="toggle-field"><span><strong>Persistent cough</strong><small>Cough that does not go away</small></span><input class="switch-input" type="checkbox" name="Persistent Cough" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Nausea or vomiting</strong><small>Frequent nausea or vomiting</small></span><input class="switch-input" type="checkbox" name="Nausea/Vomiting" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>High blood pressure</strong><small>Diagnosed hypertension</small></span><input class="switch-input" type="checkbox" name="High Blood Pressure" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Chest discomfort during activity</strong><small>Pressure during physical activity</small></span><input class="switch-input" type="checkbox" name="Chest Discomfort (Activity)" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Cold hands or feet</strong><small>Frequently cold extremities</small></span><input class="switch-input" type="checkbox" name="Cold Hands/Feet" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Snoring or sleep apnea</strong><small>Loud snoring or gasping during sleep</small></span><input class="switch-input" type="checkbox" name="Snoring/Sleep Apnea" value="1" role="switch"></label>
+          <label class="toggle-field"><span><strong>Anxiety or feeling of doom</strong><small>Sudden severe anxiety</small></span><input class="switch-input" type="checkbox" name="Anxiety/Feeling of Doom" value="1" role="switch"></label>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <button type="button" class="reset-button" id="randomize-inputs">⤨ Randomize inputs</button>
+        <button type="button" class="reset-button" id="reset-form">Reset answers</button>
+        <span>16 model inputs · API connection</span>
+        <button type="submit" class="primary-button" id="submit-button">Analyze risk <span>↗</span></button>
+      </div>
+    </form>
+
+    <section class="result-card" id="result-panel" aria-live="polite">
+      <div class="result-top"><span class="result-icon result-symbol">↗</span><div><p class="eyebrow">YOUR RESULT</p><h2 id="result-title">Your stroke risk estimate will appear here.</h2></div></div>
+      <p id="result-summary">Complete the indicators above, then select “Analyze risk”.</p>
+      <div class="probability-block"><div class="probability-label"><span>Estimated stroke probability</span><strong id="probability-value">—</strong></div><div class="meter"><span id="probability-meter"></span></div><div class="meter-scale"><span>0%</span><span id="threshold-label">Threshold —</span><span>100%</span></div></div>
+      <div class="error-message" id="error-message" role="alert" hidden></div>
+      <p class="result-disclaimer">This machine-learning estimate is for educational demonstration only and must not be used for medical decisions.</p>
+    </section>
+    <footer><span>STROKE RISK PREDICTION · HEALTH SCREENING DEMO</span><span class="footer-credit">Designed & built by <strong>Muhammad Ammar</strong></span></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

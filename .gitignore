@@ -1,0 +1,16 @@
+# Local data
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Python and notebook files
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Local environments and tooling
+.venv/
+venv/
+.env
+.DS_Store

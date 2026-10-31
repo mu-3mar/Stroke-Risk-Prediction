@@ -7,6 +7,4 @@ joblib
 fastapi
 uvicorn
 pydantic
-streamlit
-requests
 jupyter
