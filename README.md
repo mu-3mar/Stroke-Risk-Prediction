@@ -63,11 +63,17 @@ Download instructions are in [`data/README.md`](data/README.md).
 
 ## Usage
 
-Install all packages for training, analysis, and the API:
+Install the production and notebook dependencies for training, analysis, and
+the API:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
+
+[`requirements.txt`](requirements.txt) contains only the dependencies needed by
+the deployed inference API. [`requirements-dev.txt`](requirements-dev.txt)
+includes that production set plus Jupyter and the notebook visualization
+packages (`matplotlib` and `seaborn`).
 
 For the API Docker image, install only the runtime dependencies:
 
