@@ -1,202 +1,316 @@
 # Stroke Risk Prediction
 
-An end-to-end machine learning project that explores patient health indicators,
-trains several classification models, and provides a FastAPI backend with a
-browser-based frontend for estimating stroke risk.
+An end-to-end machine-learning project for estimating stroke-risk likelihood
+from age and health/symptom indicators. The project includes exploratory data
+analysis, preprocessing, model comparison, a serialized scikit-learn model, a
+FastAPI inference service, a responsive browser interface, Docker support, and
+Vercel deployment.
 
-> **Medical disclaimer:** This project is for educational purposes only. It is
-> not a medical device or diagnosis. Always consult a qualified healthcare
-> professional for medical advice.
+> **Medical disclaimer:** This is an educational machine-learning
+> demonstration, not a medical device, diagnosis, or treatment
+> recommendation. Do not use the output to make medical decisions. Always
+> consult a qualified healthcare professional.
 
-## Project workflow
+## Live demo
+
+Try the deployed browser application:
+
+**[Open the Stroke Risk Predictor](https://stroke-prediction-mu.vercel.app/)**
+
+The interface sends the selected inputs to the deployed prediction API and
+displays the returned probability and the binary classification threshold.
+
+## Highlights
+
+- Complete notebook workflow: data loading, EDA, preprocessing, training,
+  evaluation, visualization, and model export.
+- Comparison of five classifiers:
+  Logistic Regression, Decision Tree, Random Forest, Gradient Boosting, and
+  Support Vector Machine.
+- Class-weighted training for Logistic Regression, Decision Tree, Random
+  Forest, and SVM.
+- Stratified train/test split with a fixed random seed for reproducibility.
+- Standardization of the `Age` feature using a saved `StandardScaler`.
+- FastAPI endpoints for health checks and predictions with request validation.
+- Browser UI with 16 model inputs, probability visualization, reset/randomize
+  controls, and API connection status.
+- Docker image and Vercel-compatible serverless deployment configuration.
+
+## Model evaluation
+
+The notebook uses an 80/20 stratified train/test split (`random_state=42`).
+The table below is the recorded test-set output from the notebook. Models are
+ranked by **Recall**, because missing a positive risk case is especially
+important for this educational experiment.
+
+| Model | Accuracy | Recall | F1 | ROC AUC |
+|---|---:|---:|---:|---:|
+| **Support Vector Machine** | **98.81%** | **98.29%** | **99.08%** | **99.98%** |
+| Gradient Boosting | 95.75% | 98.16% | 96.77% | 99.11% |
+| Random Forest | 94.64% | 96.73% | 95.90% | 99.05% |
+| Logistic Regression | 97.61% | 96.32% | 98.12% | 99.99% |
+| Decision Tree | 88.02% | 91.65% | 90.85% | 86.47% |
+
+The Support Vector Machine was selected by the notebook and saved as
+`models/best_stroke_model.pkl`. The API uses a probability threshold of `0.5`
+to convert the class-1 probability into the binary `prediction` value.
+
+These metrics are not a clinical validation. They come from one hold-out
+split, and the dataset's feature definitions and target construction should be
+reviewed before any real-world use. High scores should not be interpreted as
+evidence of medical accuracy or generalization to patients outside this data.
+
+## Dataset
+
+The notebook expects the public
+[Stroke Prediction Dataset on Kaggle](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
+at:
 
 ```text
 data/raw/healthcare-dataset-stroke-data.csv
-              │
-              ▼
-notebooks/01_stroke_risk_prediction.ipynb
-              │
-              ├── data exploration and preprocessing
-              └── models/best_stroke_model.pkl
-                  models/scaler.pkl
-                              │
-                              ▼
-                     src/main.py ──► POST /predict
-                              ▲
-                              │
-                    public/ (separate server locally, CDN on Vercel)
 ```
 
-The notebook contains the complete analysis, preprocessing, model comparison,
-and artifact generation workflow. The FastAPI application loads the saved
-artifacts and serves only the prediction API. The frontend is a separate,
-independent static application that connects to the API when it is available.
+The raw dataset is intentionally not committed. See
+[`data/README.md`](data/README.md) for download and placement instructions.
+
+In the recorded notebook run, duplicate rows were removed and the resulting
+data shape was **68,979 rows × 18 columns**. The notebook uses the binary
+`At Risk (Binary)` target and drops the derived `Stroke Risk (%)` column before
+training. Categorical `Absent`/`Present` values are mapped to `0`/`1`, while
+the target is mapped from `Not At Risk`/`At Risk` to `0`/`1`.
+
+The model receives these 16 features:
+
+1. `Chest Pain`
+2. `Shortness of Breath`
+3. `Irregular Heartbeat`
+4. `Fatigue & Weakness`
+5. `Dizziness`
+6. `Swelling (Edema)`
+7. `Pain in Neck/Jaw/Shoulder/Back`
+8. `Excessive Sweating`
+9. `Persistent Cough`
+10. `Nausea/Vomiting`
+11. `High Blood Pressure`
+12. `Chest Discomfort (Activity)`
+13. `Cold Hands/Feet`
+14. `Snoring/Sleep Apnea`
+15. `Anxiety/Feeling of Doom`
+16. `Age`
+
+## How the project works
+
+```text
+Kaggle CSV
+   │
+   ▼
+notebooks/01_stroke_risk_prediction.ipynb
+   │  clean, encode, split, scale Age, train, compare
+   ▼
+models/best_stroke_model.pkl + models/scaler.pkl
+   │
+   ▼
+src/main.py (FastAPI)
+   ├── GET  /
+   ├── GET  /health
+   └── POST /predict
+   │
+   ▼
+public/ (static browser application)
+```
+
+The API loads only the serialized model and scaler at startup. Training and
+notebook visualization dependencies are not imported by the inference path.
 
 ## Project structure
 
 ```text
 Stroke-Risk-Prediction/
 ├── README.md
-├── requirements.txt
-├── requirements-docker.txt
+├── requirements.txt              # API/runtime dependencies
+├── requirements-dev.txt          # runtime + notebook/visualization tools
+├── requirements-docker.txt       # lean Docker runtime dependencies
+├── Dockerfile
+├── vercel.json
 ├── notebooks/
-│   └── 01_stroke_risk_prediction.ipynb # EDA, preprocessing, training
+│   └── 01_stroke_risk_prediction.ipynb
 ├── src/
 │   ├── __init__.py
-│   └── main.py                         # FastAPI app and prediction endpoint
+│   └── main.py                   # FastAPI app and validation
 ├── public/
-│   ├── index.html                      # Browser prediction form
-│   ├── app.js                          # 16-feature request and result handling
-│   ├── styles.css                      # Frontend styling
-│   └── logo-animated.html              # Frontend logo
+│   ├── index.html                 # prediction form
+│   ├── app.js                     # API integration and result handling
+│   ├── styles.css
+│   └── logo-animated.html
 ├── models/
-│   ├── best_stroke_model.pkl           # trained classifier
-│   └── scaler.pkl                      # fitted Age scaler
+│   ├── best_stroke_model.pkl
+│   └── scaler.pkl
 └── data/
-    ├── README.md                       # dataset source and placement
-    ├── raw/                            # local dataset files (ignored)
-    └── processed/                      # optional generated data (ignored)
+    ├── README.md
+    ├── raw/
+    └── processed/
 ```
 
-The dataset and generated processed data are intentionally not committed.
-Download instructions are in [`data/README.md`](data/README.md).
+## Run locally
 
-## Usage
+### 1. Install dependencies
 
-Install the production and notebook dependencies for training, analysis, and
-the API:
+For notebook work, model training, and the API:
 
 ```bash
-pip install -r requirements-dev.txt
+python3 -m pip install -r requirements-dev.txt
 ```
 
-[`requirements.txt`](requirements.txt) contains only the dependencies needed by
-the deployed inference API. [`requirements-dev.txt`](requirements-dev.txt)
-includes that production set plus Jupyter and the notebook visualization
-packages (`matplotlib` and `seaborn`).
-
-For the API Docker image, install only the runtime dependencies:
+For API-only local inference:
 
 ```bash
-pip install -r requirements-docker.txt
+python3 -m pip install -r requirements.txt
 ```
 
-The Docker requirements exclude the notebook and visualization packages
-(`jupyter`, `matplotlib`, and `seaborn`). They still include
-`scikit-learn`, because it is required to load and run the trained model
-artifacts.
+### 2. Run the FastAPI backend
 
-## Dockerization
-
-The FastAPI backend has been containerized and the image is available on
-[Docker Hub](https://hub.docker.com/r/mu3mar/stroke-risk-api):
-
-```text
-mu3mar/stroke-risk-api:latest
-```
-
-Pull and run the image:
-
-```bash
-docker pull mu3mar/stroke-risk-api:latest
-docker run -d \
-  --name stroke-risk-api \
-  -p 8000:8000 \
-  mu3mar/stroke-risk-api:latest
-```
-
-After starting the container, check the API health:
-
-```bash
-curl http://localhost:8000/health
-```
-
-The API documentation is available at
-<http://localhost:8000/docs>. To stop and remove the container:
-
-```bash
-docker stop stroke-risk-api
-docker rm stroke-risk-api
-```
-
-To reproduce the analysis and regenerate the model files:
-
-1. Put `healthcare-dataset-stroke-data.csv` in `data/raw/`.
-2. Open `notebooks/01_stroke_risk_prediction.ipynb` from the repository root.
-3. Run all cells. The trained artifacts will be written to `models/`.
-
-Run the backend API in one terminal:
+From the repository root:
 
 ```bash
 uvicorn src.main:app --reload
 ```
 
-Run the independent frontend in a second terminal:
+The backend runs at <http://127.0.0.1:8000>.
+
+- Health check: <http://127.0.0.1:8000/health>
+- Interactive OpenAPI docs: <http://127.0.0.1:8000/docs>
+- Prediction endpoint: `POST http://127.0.0.1:8000/predict`
+
+### 3. Run the frontend
+
+In a second terminal:
 
 ```bash
 python3 -m http.server 5500 --directory public
 ```
 
-Open <http://127.0.0.1:5500/> in a browser. During local development, the
-frontend connects to the API at `http://127.0.0.1:8000`; if the API is
-stopped, the frontend remains open and shows the API as offline. On Vercel,
-the same frontend uses same-origin requests to the deployed API. The API also
-exposes `/health` and `POST /predict`.
+Open <http://127.0.0.1:5500/>. The local frontend automatically uses
+`http://127.0.0.1:8000` as its API base URL. On the Vercel deployment it uses
+same-origin relative requests.
 
-The frontend in [`public/`](public) uses the same 16 inputs as the trained
-model and sends this request to `POST /predict`:
+### 4. Reproduce the notebook workflow
+
+1. Download the dataset from Kaggle.
+2. Place it at
+   `data/raw/healthcare-dataset-stroke-data.csv`.
+3. Open
+   [`notebooks/01_stroke_risk_prediction.ipynb`](notebooks/01_stroke_risk_prediction.ipynb)
+   from the repository root.
+4. Run the notebook cells in order.
+
+The final cells write the trained classifier and age scaler to `models/`.
+
+## API reference
+
+### `GET /health`
+
+```json
+{"status": "ok"}
+```
+
+### `POST /predict`
+
+The request must contain all 16 feature names. Binary features must be `0` or
+`1`; `Age` must be an integer from `1` through `120`.
+
+Example request:
 
 ```json
 {
   "features": {
-    "Age": 30,
     "Chest Pain": 0,
-    "Shortness of Breath": 0
+    "Shortness of Breath": 0,
+    "Irregular Heartbeat": 1,
+    "Fatigue & Weakness": 0,
+    "Dizziness": 0,
+    "Swelling (Edema)": 0,
+    "Pain in Neck/Jaw/Shoulder/Back": 0,
+    "Excessive Sweating": 0,
+    "Persistent Cough": 0,
+    "Nausea/Vomiting": 0,
+    "High Blood Pressure": 1,
+    "Chest Discomfort (Activity)": 0,
+    "Cold Hands/Feet": 0,
+    "Snoring/Sleep Apnea": 0,
+    "Anxiety/Feeling of Doom": 0,
+    "Age": 54
   }
 }
 ```
 
-The response should contain the model output:
+Example response:
 
 ```json
-{"prediction": 0, "probability": 0.12, "threshold": 0.5}
+{
+  "prediction": 0,
+  "probability": 0.12,
+  "threshold": 0.5
+}
 ```
 
-The prediction response contains the binary prediction and class-1
-probability. The project no longer uses Streamlit.
+The API returns HTTP `422` for missing or unknown features, invalid binary
+values, or an invalid age.
+
+## Docker
+
+The backend can run as a small API container using the runtime-only
+dependencies:
+
+```bash
+docker pull mu3mar/stroke-risk-api:latest
+docker run --rm --name stroke-risk-api -p 8000:8000 \
+  mu3mar/stroke-risk-api:latest
+```
+
+Verify the container:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Build the image locally if needed:
+
+```bash
+docker build -t stroke-risk-api .
+docker run --rm -p 8000:8000 stroke-risk-api
+```
+
+The API documentation is available at <http://localhost:8000/docs>.
 
 ## Vercel deployment
 
-This repository uses Vercel's native Python runtime. Vercel discovers the
-FastAPI instance exported as `app` from [`src/main.py`](src/main.py), installs
-the runtime dependencies from [`requirements.txt`](requirements.txt), and
-serves the files in [`public/`](public/) from the CDN. [`vercel.json`](vercel.json)
-explicitly includes both serialized model artifacts in the Python function
-bundle.
+The repository is configured for Vercel's native Python runtime:
 
-Connect the repository to Vercel with the repository root as the project root.
-No build command or output directory is required. After deployment, open the
-deployment URL and verify `/health`, `/docs`, and the browser form. The
-prediction API remains `POST /predict`; frontend requests are relative to the
-deployment URL.
+- `src/main.py` exports the FastAPI instance as `app`.
+- `requirements.txt` contains the inference dependencies.
+- `vercel.json` bundles both files in `models/*.pkl`.
+- `public/` is served as the static frontend.
+- No build command or output directory is required.
 
-Vercel functions are stateless and may cold-start while importing the model.
-The serialized artifacts are approximately 660 KB in total, but the Python
-runtime and scientific dependencies still contribute to bundle size and cold
-start time. The deployment does not require the training dataset: training
-and notebook processing are not imported by the API.
+To deploy, import the repository into Vercel with the repository root as the
+project root. After deployment, verify `/`, `/health`, `/docs`, and the
+browser form. Vercel functions are stateless and may cold-start while loading
+the model.
 
-## Features
+## Limitations and responsible use
 
-- Exploratory data analysis and visualization.
-- Preprocessing of demographic and health-related features.
-- Comparison of Logistic Regression, Random Forest, SVM, Decision Tree, and
-  Gradient Boosting classifiers.
-- Risk probability and binary risk prediction in a browser UI.
+- This is a project/demo classifier, not a clinically validated system.
+- The displayed probability is a model estimate, not a diagnosis or a
+  patient's medical probability.
+- Results can be affected by dataset bias, leakage, sampling, feature quality,
+  and the single train/test split used in the notebook.
+- The dataset and model should not be used for treatment, triage, or other
+  high-impact decisions.
+- Do not submit personally identifiable or sensitive health information to a
+  public deployment.
 
-## Dataset
+## License and data attribution
 
-The project uses the public
-[Stroke Prediction Dataset](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
-from Kaggle. See [`data/README.md`](data/README.md) for the expected filename
-and target definition.
+The dataset is obtained separately from Kaggle and remains subject to its
+source terms. Review the dataset page for attribution and usage conditions
+before redistributing it.
